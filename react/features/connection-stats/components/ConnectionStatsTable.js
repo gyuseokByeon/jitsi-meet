@@ -2,6 +2,7 @@
 
 import React, { Component } from 'react';
 
+import { isMobileBrowser } from '../../../features/base/environment/utils';
 import { translate } from '../../base/i18n';
 
 /**
@@ -20,7 +21,7 @@ type Props = {
      * {{
      *     download: Number,
      *     upload: Number
-     * }}
+     * }}.
      */
     bandwidth: Object,
 
@@ -29,7 +30,7 @@ type Props = {
      * {{
      *     download: Number,
      *     upload: Number
-     * }}
+     * }}.
      */
     bitrate: Object,
 
@@ -60,6 +61,11 @@ type Props = {
     enableSaveLogs: boolean,
 
     /**
+     * Whether or not should display the "Show More" link.
+     */
+    disableShowMoreStats: boolean,
+
+    /**
      * The endpoint id of this client.
      */
     participantId: string,
@@ -68,7 +74,7 @@ type Props = {
      * Statistics related to frame rates for each ssrc.
      * {{
      *     [ ssrc ]: Number
-     * }}
+     * }}.
      */
     framerate: Object,
 
@@ -98,7 +104,7 @@ type Props = {
      * {{
      *     download: Number,
      *     upload: Number
-     * }}
+     * }}.
      */
     packetLoss: Object,
 
@@ -114,7 +120,7 @@ type Props = {
      *         height: Number,
      *         width: Number
      *     }
-     * }}
+     * }}.
      */
     resolution: Object,
 
@@ -160,7 +166,7 @@ function onClick(event) {
 /**
  * React {@code Component} for displaying connection statistics.
  *
- * @extends Component
+ * @augments Component
  */
 class ConnectionStatsTable extends Component<Props> {
     /**
@@ -170,16 +176,17 @@ class ConnectionStatsTable extends Component<Props> {
      * @returns {ReactElement}
      */
     render() {
-        const { isLocalVideo, enableSaveLogs } = this.props;
+        const { isLocalVideo, enableSaveLogs, disableShowMoreStats } = this.props;
+        const className = isMobileBrowser() ? 'connection-info connection-info__mobile' : 'connection-info';
 
         return (
             <div
-                className = 'connection-info'
+                className = { className }
                 onClick = { onClick }>
                 { this._renderStatistics() }
                 <div className = 'connection-actions'>
                     { isLocalVideo && enableSaveLogs ? this._renderSaveLogs() : null}
-                    { this._renderShowMoreLink() }
+                    { !disableShowMoreStats && this._renderShowMoreLink() }
                 </div>
                 { this.props.shouldShowMore ? this._renderAdditionalStats() : null }
             </div>
@@ -572,7 +579,9 @@ class ConnectionStatsTable extends Component<Props> {
             <span>
                 <a
                     className = 'savelogs link'
-                    onClick = { this.props.onSaveLogs } >
+                    onClick = { this.props.onSaveLogs }
+                    role = 'button'
+                    tabIndex = { 0 }>
                     { this.props.t('connectionindicator.savelogs') }
                 </a>
                 <span> | </span>
@@ -597,7 +606,9 @@ class ConnectionStatsTable extends Component<Props> {
         return (
             <a
                 className = 'showmore link'
-                onClick = { this.props.onShowMore } >
+                onClick = { this.props.onShowMore }
+                role = 'button'
+                tabIndex = { 0 }>
                 { this.props.t(translationKey) }
             </a>
         );

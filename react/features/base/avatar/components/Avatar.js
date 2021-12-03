@@ -11,6 +11,11 @@ import { StatelessAvatar } from '.';
 export type Props = {
 
     /**
+     * Custom avatar backgrounds from branding.
+     */
+    _customAvatarBackgrounds: Array<string>,
+
+    /**
      * The string we base the initials on (this is generated from a list of precedences).
      */
     _initialsBase: ?string,
@@ -33,12 +38,12 @@ export type Props = {
 
     /**
      * Display name of the entity to render an avatar for (if any). This is handy when we need
-     * an avatar for a non-participasnt entity (e.g. a recent list item).
+     * an avatar for a non-participasnt entity (e.g. A recent list item).
      */
     displayName?: string,
 
     /**
-     * Whether or not to update the background color of the avatar
+     * Whether or not to update the background color of the avatar.
      */
     dynamicColor?: Boolean,
 
@@ -133,6 +138,7 @@ class Avatar<P: Props> extends PureComponent<P, State> {
      */
     render() {
         const {
+            _customAvatarBackgrounds,
             _initialsBase,
             _loadableAvatarUrl,
             className,
@@ -172,7 +178,7 @@ class Avatar<P: Props> extends PureComponent<P, State> {
 
         if (initials) {
             if (dynamicColor) {
-                avatarProps.color = getAvatarColor(colorBase || _initialsBase);
+                avatarProps.color = getAvatarColor(colorBase || _initialsBase, _customAvatarBackgrounds);
             }
 
             avatarProps.initials = initials;
@@ -211,9 +217,10 @@ export function _mapStateToProps(state: Object, ownProps: Props) {
     const _initialsBase = _participant?.name ?? displayName;
 
     return {
+        _customAvatarBackgrounds: state['features/dynamic-branding'].avatarBackgrounds,
         _initialsBase,
         _loadableAvatarUrl: _participant?.loadableAvatarUrl,
-        colorBase: !colorBase && _participant ? _participant.id : colorBase
+        colorBase
     };
 }
 

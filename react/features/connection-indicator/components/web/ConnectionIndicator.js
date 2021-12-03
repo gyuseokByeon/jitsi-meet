@@ -6,20 +6,16 @@ import type { Dispatch } from 'redux';
 import { translate } from '../../../base/i18n';
 import { Icon, IconConnectionActive, IconConnectionInactive } from '../../../base/icons';
 import { JitsiParticipantConnectionStatus } from '../../../base/lib-jitsi-meet';
-import { MEDIA_TYPE } from '../../../base/media';
 import { getLocalParticipant, getParticipantById } from '../../../base/participants';
 import { Popover } from '../../../base/popover';
 import { connect } from '../../../base/redux';
-import { getTrackByMediaTypeAndParticipant } from '../../../base/tracks';
-import { ConnectionStatsTable } from '../../../connection-stats';
-import { saveLogs } from '../../actions';
 import AbstractConnectionIndicator, {
     INDICATOR_DISPLAY_THRESHOLD,
     type Props as AbstractProps,
     type State as AbstractState
 } from '../AbstractConnectionIndicator';
 
-declare var interfaceConfig: Object;
+import ConnectionIndicatorContent from './ConnectionIndicatorContent';
 
 /**
  * An array of display configurations for the connection indicator and its bars.
@@ -69,6 +65,16 @@ type Props = AbstractProps & {
     _connectionStatus: string,
 
     /**
+     * Disable/enable inactive indicator.
+     */
+    _connectionIndicatorInactiveDisabled: boolean,
+
+    /**
+     * Wether the indicator popover is disabled.
+     */
+    _popoverDisabled: boolean,
+
+    /**
      * Whether or not the component should ignore setting a visibility class for
      * hiding the component when the connection quality is not strong.
      */
@@ -84,11 +90,6 @@ type Props = AbstractProps & {
      */
     dispatch: Dispatch<any>,
 
-    /**
-     * Whether or not should display the "Save Logs" link in the local video
-     * stats table.
-     */
-    enableSaveLogs: boolean,
 
     /**
      * Whether or not clicking the indicator should display a popover for more
@@ -102,11 +103,6 @@ type Props = AbstractProps & {
     iconSize: number,
 
     /**
-     * Whether or not the displays stats are for local video.
-     */
-    isLocalVideo: boolean,
-
-    /**
      * Relative to the icon from where the popover for more connection details
      * should display.
      */
@@ -116,34 +112,21 @@ type Props = AbstractProps & {
      * Invoked to obtain translated strings.
      */
     t: Function,
-
-    /**
-     * The video SSRC of this client.
-     */
-    videoSsrc: number,
-
-    /**
-     * Invoked to save the conference logs.
-     */
-    _onSaveLogs: Function
 };
 
-/**
- * The type of the React {@code Component} state of {@link ConnectionIndicator}.
- */
 type State = AbstractState & {
 
     /**
-     * Whether or not the popover content should display additional statistics.
+     * Whether popover is ivisible or not.
      */
-    showMoreStats: boolean
-};
+    popoverVisible: boolean
+}
 
 /**
  * Implements a React {@link Component} which displays the current connection
  * quality percentage and has a popover to show more detailed connection stats.
  *
- * @extends {Component}
+ * @augments {Component}
  */
 class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
     /**
@@ -156,14 +139,12 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
         super(props);
 
         this.state = {
-            autoHideTimeout: undefined,
             showIndicator: false,
-            showMoreStats: false,
-            stats: {}
+            stats: {},
+            popoverVisible: false
         };
-
-        // Bind event handlers so they are only bound once for every instance.
-        this._onToggleShowMore = this._onToggleShowMore.bind(this);
+        this._onShowPopover = this._onShowPopover.bind(this);
+        this._onHidePopover = this._onHidePopover.bind(this);
     }
 
     /**
@@ -173,28 +154,29 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
      * @returns {ReactElement}
      */
     render() {
+        const { enableStatsDisplay, participantId, statsPopoverPosition } = this.props;
         const visibilityClass = this._getVisibilityClass();
         const rootClassNames = `indicator-container ${visibilityClass}`;
 
-        const colorClass = this._getConnectionColorClass();
-        const indicatorContainerClassNames
-            = `connection-indicator indicator ${colorClass}`;
+        if (this.props._popoverDisabled) {
+            return this._renderIndicator();
+        }
 
         return (
             <Popover
                 className = { rootClassNames }
-                content = { this._renderStatisticsTable() }
-                disablePopover = { !this.props.enableStatsDisplay }
-                position = { this.props.statsPopoverPosition }>
-                <div className = 'popover-trigger'>
-                    <div
-                        className = { indicatorContainerClassNames }
-                        style = {{ fontSize: this.props.iconSize }}>
-                        <div className = 'connection indicatoricon'>
-                            { this._renderIcon() }
-                        </div>
-                    </div>
-                </div>
+                content = { <ConnectionIndicatorContent
+                    inheritedStats = { this.state.stats }
+                    participantId = { participantId } /> }
+                disablePopover = { !enableStatsDisplay }
+                id = 'participant-connection-indicator'
+                noPaddingContent = { true }
+                onPopoverClose = { this._onHidePopover }
+                onPopoverOpen = { this._onShowPopover }
+                paddedContent = { true }
+                position = { statsPopoverPosition }
+                visible = { this.state.popoverVisible }>
+                { this._renderIndicator() }
             </Popover>
         );
     }
@@ -212,6 +194,10 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
         const { INACTIVE, INTERRUPTED } = JitsiParticipantConnectionStatus;
 
         if (_connectionStatus === INACTIVE) {
+            if (this.props._connectionIndicatorInactiveDisabled) {
+                return 'status-disabled';
+            }
+
             return 'status-other';
         } else if (_connectionStatus === INTERRUPTED) {
             return 'status-lost';
@@ -220,43 +206,6 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
         }
 
         return this._getDisplayConfiguration(percent).colorClass;
-    }
-
-    /**
-     * Returns a string that describes the current connection status.
-     *
-     * @private
-     * @returns {string}
-     */
-    _getConnectionStatusTip() {
-        let tipKey;
-
-        switch (this.props._connectionStatus) {
-        case JitsiParticipantConnectionStatus.INTERRUPTED:
-            tipKey = 'connectionindicator.quality.lost';
-            break;
-
-        case JitsiParticipantConnectionStatus.INACTIVE:
-            tipKey = 'connectionindicator.quality.inactive';
-            break;
-
-        default: {
-            const { percent } = this.state.stats;
-
-            if (typeof percent === 'undefined') {
-                // If percentage is undefined then there are no stats available
-                // yet, likely because only a local connection has been
-                // established so far. Assume a strong connection to start.
-                tipKey = 'connectionindicator.quality.good';
-            } else {
-                const config = this._getDisplayConfiguration(percent);
-
-                tipKey = config.tip;
-            }
-        }
-        }
-
-        return this.props.t(tipKey);
     }
 
     /**
@@ -291,17 +240,16 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
             ? 'show-connection-indicator' : 'hide-connection-indicator';
     }
 
-    _onToggleShowMore: () => void;
+    _onHidePopover: () => void;
 
     /**
-     * Callback to invoke when the show more link in the popover content is
-     * clicked. Sets the state which will determine if the popover should show
-     * additional statistics about the connection.
+     * Hides popover.
      *
+     * @private
      * @returns {void}
      */
-    _onToggleShowMore() {
-        this.setState({ showMoreStats: !this.state.showMoreStats });
+    _onHidePopover() {
+        this.setState({ popoverVisible: false });
     }
 
     /**
@@ -311,8 +259,11 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
      * @returns {ReactElement}
      */
     _renderIcon() {
-        if (this.props._connectionStatus
-            === JitsiParticipantConnectionStatus.INACTIVE) {
+        if (this.props._connectionStatus === JitsiParticipantConnectionStatus.INACTIVE) {
+            if (this.props._connectionIndicatorInactiveDisabled) {
+                return null;
+            }
+
             return (
                 <span className = 'connection_ninja'>
                     <Icon
@@ -362,77 +313,42 @@ class ConnectionIndicator extends AbstractConnectionIndicator<Props, State> {
         ];
     }
 
+    _onShowPopover: () => void;
+
     /**
-     * Creates a {@code ConnectionStatisticsTable} instance.
+     * Shows popover.
+     *
+     * @private
+     * @returns {void}
+     */
+    _onShowPopover() {
+        this.setState({ popoverVisible: true });
+    }
+
+
+    /**
+     * Creates a ReactElement for displaying the indicator (GSM bar).
      *
      * @returns {ReactElement}
      */
-    _renderStatisticsTable() {
-        const {
-            bandwidth,
-            bitrate,
-            bridgeCount,
-            codec,
-            e2eRtt,
-            framerate,
-            maxEnabledResolution,
-            packetLoss,
-            region,
-            resolution,
-            serverRegion,
-            transport
-        } = this.state.stats;
+    _renderIndicator() {
+        const colorClass = this._getConnectionColorClass();
+        const indicatorContainerClassNames
+              = `connection-indicator indicator ${colorClass}`;
 
         return (
-            <ConnectionStatsTable
-                audioSsrc = { this.props.audioSsrc }
-                bandwidth = { bandwidth }
-                bitrate = { bitrate }
-                bridgeCount = { bridgeCount }
-                codec = { codec }
-                connectionSummary = { this._getConnectionStatusTip() }
-                e2eRtt = { e2eRtt }
-                enableSaveLogs = { this.props.enableSaveLogs }
-                framerate = { framerate }
-                isLocalVideo = { this.props.isLocalVideo }
-                maxEnabledResolution = { maxEnabledResolution }
-                onSaveLogs = { this.props._onSaveLogs }
-                onShowMore = { this._onToggleShowMore }
-                packetLoss = { packetLoss }
-                participantId = { this.props.participantId }
-                region = { region }
-                resolution = { resolution }
-                serverRegion = { serverRegion }
-                shouldShowMore = { this.state.showMoreStats }
-                transport = { transport }
-                videoSsrc = { this.props.videoSsrc } />
+            <div className = 'popover-trigger'>
+                <div
+                    className = { indicatorContainerClassNames }
+                    style = {{ fontSize: this.props.iconSize }}>
+                    <div className = 'connection indicatoricon'>
+                        { this._renderIcon() }
+                    </div>
+                </div>
+            </div>
         );
     }
 }
-
-
-/**
- * Maps redux actions to the props of the component.
- *
- * @param {Function} dispatch - The redux action {@code dispatch} function.
- * @returns {{
- *     _onSaveLogs: Function,
- * }}
- * @private
- */
-export function _mapDispatchToProps(dispatch: Dispatch<any>) {
-    return {
-        /**
-         * Saves the conference logs.
-         *
-         * @returns {Function}
-         */
-        _onSaveLogs() {
-            dispatch(saveLogs());
-        }
-    };
-}
-
 
 /**
  * Maps part of the Redux state to the props of this component.
@@ -443,29 +359,14 @@ export function _mapDispatchToProps(dispatch: Dispatch<any>) {
  */
 export function _mapStateToProps(state: Object, ownProps: Props) {
     const { participantId } = ownProps;
-    const conference = state['features/base/conference'].conference;
     const participant
-        = typeof participantId === 'undefined' ? getLocalParticipant(state) : getParticipantById(state, participantId);
-    const props = {
-        _connectionStatus: participant?.connectionStatus,
-        enableSaveLogs: state['features/base/config'].enableSaveLogs
-    };
-
-    if (conference) {
-        const firstVideoTrack = getTrackByMediaTypeAndParticipant(
-            state['features/base/tracks'], MEDIA_TYPE.VIDEO, participantId);
-        const firstAudioTrack = getTrackByMediaTypeAndParticipant(
-            state['features/base/tracks'], MEDIA_TYPE.AUDIO, participantId);
-
-        return {
-            ...props,
-            audioSsrc: firstAudioTrack ? conference.getSsrcByTrack(firstAudioTrack.jitsiTrack) : undefined,
-            videoSsrc: firstVideoTrack ? conference.getSsrcByTrack(firstVideoTrack.jitsiTrack) : undefined
-        };
-    }
+        = participantId ? getParticipantById(state, participantId) : getLocalParticipant(state);
 
     return {
-        ...props
+        _connectionIndicatorInactiveDisabled:
+        Boolean(state['features/base/config'].connectionIndicators?.inactiveDisabled),
+        _popoverDisabled: state['features/base/config'].connectionIndicators?.disableDetails,
+        _connectionStatus: participant?.connectionStatus
     };
 }
-export default translate(connect(_mapStateToProps, _mapDispatchToProps)(ConnectionIndicator));
+export default translate(connect(_mapStateToProps)(ConnectionIndicator));

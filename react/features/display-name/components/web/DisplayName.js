@@ -79,7 +79,7 @@ type State = {
 /**
  * React {@code Component} for displaying and editing a participant's name.
  *
- * @extends Component
+ * @augments Component
  */
 class DisplayName extends Component<Props, State> {
     _nameInput: ?HTMLInputElement;
@@ -288,8 +288,7 @@ function _mapStateToProps(state, ownProps) {
 
     return {
         _configuredDisplayName: participant && participant.name,
-        _nameToDisplay: getParticipantDisplayName(
-            state, participantID)
+        _nameToDisplay: getParticipantDisplayName(state, participantID)
     };
 }
 

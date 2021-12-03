@@ -3,6 +3,7 @@
 import React from 'react';
 
 import { Icon } from '../../../icons';
+import { isGravatarURL } from '../../functions';
 import AbstractStatelessAvatar, { type Props as AbstractProps } from '../AbstractStatelessAvatar';
 
 type Props = AbstractProps & {
@@ -13,7 +14,7 @@ type Props = AbstractProps & {
     className?: string,
 
     /**
-     * The default avatar URL if we want to override the app bundled one (e.g. AlwaysOnTop)
+     * The default avatar URL if we want to override the app bundled one (e.g. AlwaysOnTop).
      */
     defaultAvatar?: string,
 
@@ -64,7 +65,9 @@ export default class StatelessAvatar extends AbstractStatelessAvatar<Props> {
             return (
                 <div className = { this._getBadgeClassName() }>
                     <img
+                        alt = 'avatar'
                         className = { this._getAvatarClassName() }
+                        crossOrigin = { isGravatarURL(url) ? '' : undefined }
                         data-testid = { this.props.testId }
                         id = { this.props.id }
                         onError = { this.props.onAvatarLoadError }
@@ -88,7 +91,7 @@ export default class StatelessAvatar extends AbstractStatelessAvatar<Props> {
                         xmlnsXlink = 'http://www.w3.org/1999/xlink'>
                         <text
                             dominantBaseline = 'central'
-                            fill = 'rgba(255,255,255,.6)'
+                            fill = 'rgba(255,255,255,1)'
                             fontSize = '40pt'
                             textAnchor = 'middle'
                             x = '50'
@@ -104,6 +107,7 @@ export default class StatelessAvatar extends AbstractStatelessAvatar<Props> {
         return (
             <div className = { this._getBadgeClassName() }>
                 <img
+                    alt = 'avatar'
                     className = { this._getAvatarClassName('defaultAvatar') }
                     data-testid = { this.props.testId }
                     id = { this.props.id }
@@ -123,7 +127,7 @@ export default class StatelessAvatar extends AbstractStatelessAvatar<Props> {
         const { size } = this.props;
 
         return {
-            backgroundColor: color || undefined,
+            background: color || undefined,
             fontSize: size ? size * 0.5 : '180%',
             height: size || '100%',
             width: size || '100%'
@@ -155,5 +159,5 @@ export default class StatelessAvatar extends AbstractStatelessAvatar<Props> {
         return '';
     }
 
-    _isIcon: (?string | ?Object) => boolean
+    _isIcon: (?string | ?Object) => boolean;
 }
