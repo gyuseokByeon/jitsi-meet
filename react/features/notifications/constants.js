@@ -47,11 +47,44 @@ export const NOTIFICATION_TYPE_PRIORITIES = {
 };
 
 /**
+ * The set of possible notification icons.
+ *
+ * @enum {string}
+ */
+export const NOTIFICATION_ICON = {
+    ...NOTIFICATION_TYPE,
+    MESSAGE: 'message',
+    PARTICIPANT: 'participant',
+    PARTICIPANTS: 'participants'
+};
+
+/**
+ * The identifier of the lobby notification.
+ *
+ * @type {string}
+ */
+export const LOBBY_NOTIFICATION_ID = 'LOBBY_NOTIFICATION';
+
+/**
+ * The identifier of the local recording notification.
+ *
+ * @type {string}
+ */
+export const LOCAL_RECORDING_NOTIFICATION_ID = 'LOCAL_RECORDING_NOTIFICATION_ID';
+
+/**
  * The identifier of the raise hand notification.
  *
  * @type {string}
  */
 export const RAISE_HAND_NOTIFICATION_ID = 'RAISE_HAND_NOTIFICATION';
+
+/**
+ * The identifier of the salesforce link notification.
+ *
+ * @type {string}
+ */
+export const SALESFORCE_LINK_NOTIFICATION_ID = 'SALESFORCE_LINK_NOTIFICATION';
 
 /**
  * Amount of participants beyond which no join notification will be emitted.

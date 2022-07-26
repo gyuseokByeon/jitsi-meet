@@ -31,6 +31,11 @@ export type Props = {
     soundsParticipantJoined: Boolean,
 
     /**
+     * Whether or not the sound for the participant entering the lobby should play.
+     */
+    soundsParticipantKnocking: Boolean,
+
+    /**
      * Whether or not the sound for the participant left should play.
      */
     soundsParticipantLeft: Boolean,
@@ -44,6 +49,11 @@ export type Props = {
     * Whether or not the sound for reactions should play.
     */
     soundsReactions: Boolean,
+
+    /**
+     * Whether or not moderator muted the sounds.
+     */
+    moderatorMutedSoundsReactions: Boolean,
 
     /**
      * Invoked to obtain translated strings.
@@ -93,10 +103,12 @@ class SoundsTab extends AbstractDialogTab<Props> {
         const {
             soundsIncomingMessage,
             soundsParticipantJoined,
+            soundsParticipantKnocking,
             soundsParticipantLeft,
             soundsTalkWhileMuted,
             soundsReactions,
             enableReactions,
+            moderatorMutedSoundsReactions,
             t
         } = this.props;
 
@@ -109,6 +121,7 @@ class SoundsTab extends AbstractDialogTab<Props> {
                 </h2>
                 {enableReactions && <Checkbox
                     isChecked = { soundsReactions }
+                    isDisabled = { moderatorMutedSoundsReactions }
                     label = { t('settings.reactions') }
                     name = 'soundsReactions'
                     onChange = { this._onChange } />
@@ -132,6 +145,11 @@ class SoundsTab extends AbstractDialogTab<Props> {
                     isChecked = { soundsTalkWhileMuted }
                     label = { t('settings.talkWhileMuted') }
                     name = 'soundsTalkWhileMuted'
+                    onChange = { this._onChange } />
+                <Checkbox
+                    isChecked = { soundsParticipantKnocking }
+                    label = { t('settings.participantKnocking') }
+                    name = 'soundsParticipantKnocking'
                     onChange = { this._onChange } />
             </div>
         );

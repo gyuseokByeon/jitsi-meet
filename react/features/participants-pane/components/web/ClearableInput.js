@@ -65,14 +65,14 @@ const useStyles = makeStyles(theme => {
             alignItems: 'center',
             justifyContent: 'flex-start',
             height: '20px',
-            border: `1px solid ${theme.palette.border02}`,
+            border: `1px solid ${theme.palette.ui05}`,
             backgroundColor: theme.palette.uiBackground,
             position: 'relative',
             borderRadius: '6px',
             padding: '10px 16px',
 
             '&.focused': {
-                border: `3px solid ${theme.palette.field01Focus}`
+                outline: `3px solid ${theme.palette.field01Focus}`
             }
         },
         clearButton: {

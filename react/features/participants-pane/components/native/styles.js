@@ -35,39 +35,8 @@ const contextMenuItemText = {
  * The style of the participants pane buttons.
  */
 export const button = {
-    backgroundColor: BaseTheme.palette.action02,
-    borderRadius: BaseTheme.shape.borderRadius,
     display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'center',
-    minWidth: 0
-};
-
-/**
- * Small buttons.
- */
-const smallButton = {
-    ...button,
-    height: BaseTheme.spacing[7],
-    width: BaseTheme.spacing[7]
-};
-
-/**
- * Mute all button.
- */
-const muteAllButton = {
-    ...button,
-    marginLeft: 'auto'
-};
-
-/**
- * The style of the participants pane buttons description.
- */
-const buttonContent = {
-    ...BaseTheme.typography.labelButton,
-    alignContent: 'center',
-    color: BaseTheme.palette.text01,
-    display: 'flex',
     justifyContent: 'center'
 };
 
@@ -88,32 +57,15 @@ const contextMenuItem = {
 export default {
 
     participantActionsButtonAdmit: {
-        backgroundColor: BaseTheme.palette.action01,
-        borderRadius: BaseTheme.shape.borderRadius,
-        flexDirection: 'row',
-        height: BaseTheme.spacing[6],
         marginRight: BaseTheme.spacing[3],
         position: 'absolute',
-        right: 0,
-        zIndex: 1
+        right: 0
     },
 
-    participantActionsButtonContent: {
-        alignItems: 'center',
-        display: 'flex',
-        height: BaseTheme.spacing[5],
-        top: BaseTheme.spacing[1]
-    },
-
-    participantActionsButtonText: {
-        color: BaseTheme.palette.text01,
-        textTransform: 'capitalize'
-    },
-
-    admitAllParticipantsActionButtonLabel: {
-        ...BaseTheme.typography.heading6,
+    admitAllButtonLabel: {
         color: BaseTheme.palette.link01,
-        textTransform: 'capitalize'
+        marginRight: BaseTheme.spacing[6],
+        marginTop: 14
     },
 
     participantContainer: {
@@ -167,12 +119,6 @@ export default {
         paddingTop: BaseTheme.spacing[1]
     },
 
-    participantsPane: {
-        backgroundColor: BaseTheme.palette.ui01,
-        flex: 1,
-        justifyContent: 'center'
-    },
-
     participantStatesContainer: {
         display: 'flex',
         flexDirection: 'row',
@@ -195,15 +141,19 @@ export default {
 
     raisedHandIcon: {
         ...flexContent,
-        top: BaseTheme.spacing[1]
+        top: BaseTheme.spacing[1],
+        color: BaseTheme.palette.uiBackground
     },
 
-    lobbyListContainer: {
-        position: 'relative'
+    lobbyListContent: {
+        height: '16%'
     },
 
     lobbyListDescription: {
-        ...participantListDescription
+        fontSize: 15,
+        color: BaseTheme.palette.text01,
+        fontWeight: 'bold',
+        marginTop: BaseTheme.spacing[2]
     },
 
     lobbyListDetails: {
@@ -212,13 +162,20 @@ export default {
         flexDirection: 'row',
         justifyContent: 'space-between',
         overflow: 'hidden',
-        paddingLeft: BaseTheme.spacing[3],
         position: 'relative',
         width: '100%'
     },
 
+    notLocalModeratorContainer: {
+        height: '100%'
+    },
+
     meetingListContainer: {
-        flex: 1
+        height: '58%'
+    },
+
+    meetingListFullContainer: {
+        height: '82%'
     },
 
     meetingListDescription: {
@@ -226,11 +183,29 @@ export default {
         marginLeft: BaseTheme.spacing[3]
     },
 
-    footer: {
+    collapsibleRoomContainer: {
+        height: '30%'
+    },
+
+    participantsPaneContainer: {
+        backgroundColor: BaseTheme.palette.ui01,
+        flex: 1,
+        justifyContent: 'center'
+    },
+
+    participantsPaneFooter: {
         alignItems: 'center',
+        backgroundColor: BaseTheme.palette.ui01,
+        bottom: 0,
         flexDirection: 'row',
-        paddingHorizontal: BaseTheme.spacing[3],
-        paddingVertical: BaseTheme.spacing[2]
+        height: BaseTheme.spacing[12],
+        justifyContent: 'flex-end',
+        left: 0,
+        right: 0,
+        position: 'absolute',
+        paddingBottom: BaseTheme.spacing[2],
+        paddingLeft: BaseTheme.spacing[3],
+        paddingRight: BaseTheme.spacing[3]
     },
 
     headerCloseIcon: {
@@ -238,46 +213,13 @@ export default {
     },
 
     inviteButton: {
-        backgroundColor: BaseTheme.palette.action01,
-        marginBottom: BaseTheme.spacing[4],
         marginLeft: BaseTheme.spacing[3],
-        marginRight: BaseTheme.spacing[3]
-    },
-
-    inviteLabel: {
-        ...BaseTheme.typography.labelButtonLarge,
-        textTransform: 'capitalize'
+        marginRight: BaseTheme.spacing[3],
+        marginVertical: BaseTheme.spacing[3]
     },
 
     moreButton: {
-        ...smallButton
-    },
-
-    moreIcon: {
-        ...buttonContent,
-        height: BaseTheme.spacing[5],
-        marginLeft: 'auto'
-    },
-
-    muteAllButton: {
-        ...muteAllButton
-    },
-
-    muteAllMoreButton: {
-        ...muteAllButton,
-        right: BaseTheme.spacing[3]
-    },
-
-    muteAllLabel: {
-        ...BaseTheme.typography.labelButtonLarge,
-        color: BaseTheme.palette.text01,
-        height: BaseTheme.spacing[7],
-        marginVertical: BaseTheme.spacing[0],
-        marginHorizontal: BaseTheme.spacing[0],
-        paddingTop: 12,
-        paddingBottom: 12,
-        textTransform: 'capitalize',
-        width: 94
+        marginLeft: BaseTheme.spacing[2]
     },
 
     contextMenuItem: {
@@ -327,11 +269,12 @@ export default {
         height: MD_ITEM_HEIGHT,
         borderWidth: 1,
         borderStyle: 'solid',
-        borderColor: BaseTheme.palette.border02,
+        borderColor: BaseTheme.palette.ui05,
         backgroundColor: BaseTheme.palette.uiBackground,
-        borderRadius: 6,
+        borderRadius: BaseTheme.shape.borderRadius,
         marginLeft: BaseTheme.spacing[3],
-        marginRight: BaseTheme.spacing[3]
+        marginRight: BaseTheme.spacing[3],
+        marginBottom: BaseTheme.spacing[4]
     },
 
     clearableInputFocus: {

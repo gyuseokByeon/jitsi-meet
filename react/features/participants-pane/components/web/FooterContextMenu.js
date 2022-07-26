@@ -17,12 +17,22 @@ import {
 } from '../../../av-moderation/functions';
 import { ContextMenu, ContextMenuItemGroup } from '../../../base/components';
 import { openDialog } from '../../../base/dialog';
-import { IconCheck, IconVideoOff } from '../../../base/icons';
+import {
+    IconCheck,
+    IconHorizontalPoints,
+    IconVideoOff
+} from '../../../base/icons';
 import { MEDIA_TYPE } from '../../../base/media';
 import {
     getParticipantCount,
     isEveryoneModerator
 } from '../../../base/participants';
+import { isInBreakoutRoom } from '../../../breakout-rooms/functions';
+import {
+    SETTINGS_TABS,
+    openSettingsDialog,
+    shouldShowModeratorSettings
+} from '../../../settings';
 import { MuteEveryonesVideoDialog } from '../../../video-menu/components';
 
 const useStyles = makeStyles(theme => {
@@ -74,11 +84,13 @@ type Props = {
 
 export const FooterContextMenu = ({ isOpen, onDrawerClose, onMouseLeave }: Props) => {
     const dispatch = useDispatch();
-    const isModerationSupported = useSelector(isAvModerationSupported());
+    const isModerationSupported = useSelector(isAvModerationSupported);
     const allModerators = useSelector(isEveryoneModerator);
+    const isModeratorSettingsTabEnabled = useSelector(shouldShowModeratorSettings);
     const participantCount = useSelector(getParticipantCount);
     const isAudioModerationEnabled = useSelector(isAvModerationEnabled(MEDIA_TYPE.AUDIO));
     const isVideoModerationEnabled = useSelector(isAvModerationEnabled(MEDIA_TYPE.VIDEO));
+    const isBreakoutRoom = useSelector(isInBreakoutRoom);
 
     const { t } = useTranslation();
 
@@ -94,6 +106,8 @@ export const FooterContextMenu = ({ isOpen, onDrawerClose, onMouseLeave }: Props
 
     const muteAllVideo = useCallback(
         () => dispatch(openDialog(MuteEveryonesVideoDialog)), [ dispatch ]);
+
+    const openModeratorSettings = () => dispatch(openSettingsDialog(SETTINGS_TABS.MODERATOR));
 
     const actions = [
         {
@@ -132,12 +146,22 @@ export const FooterContextMenu = ({ isOpen, onDrawerClose, onMouseLeave }: Props
                     onClick: muteAllVideo,
                     text: t('participantsPane.actions.stopEveryonesVideo')
                 } ] } />
-            {isModerationSupported && (participantCount === 1 || !allModerators) && (
+            {!isBreakoutRoom && isModerationSupported && (participantCount === 1 || !allModerators) && (
                 <ContextMenuItemGroup actions = { actions }>
                     <div className = { classes.text }>
                         <span>{t('participantsPane.actions.allow')}</span>
                     </div>
                 </ContextMenuItemGroup>
+            )}
+            {isModeratorSettingsTabEnabled && (
+                <ContextMenuItemGroup
+                    actions = { [ {
+                        accessibilityLabel: t('participantsPane.actions.moreModerationControls'),
+                        id: 'participants-pane-open-moderation-control-settings',
+                        icon: IconHorizontalPoints,
+                        onClick: openModeratorSettings,
+                        text: t('participantsPane.actions.moreModerationControls')
+                    } ] } />
             )}
         </ContextMenu>
     );

@@ -4,6 +4,7 @@ import { ReducerRegistry } from '../base/redux';
 
 import {
     CHANGE_VOTE,
+    CLEAR_POLLS,
     RECEIVE_POLL,
     RECEIVE_ANSWER,
     REGISTER_VOTE,
@@ -38,6 +39,13 @@ ReducerRegistry.register('features/polls', (state = INITIAL_STATE, action) => {
         };
     }
 
+    case CLEAR_POLLS: {
+        return {
+            ...state,
+            ...INITIAL_STATE
+        };
+    }
+
     // Reducer triggered when a poll is received
     case RECEIVE_POLL: {
         const newState = {
@@ -45,7 +53,7 @@ ReducerRegistry.register('features/polls', (state = INITIAL_STATE, action) => {
             polls: {
                 ...state.polls,
 
-                // The poll is added to the dictionnary of received polls
+                // The poll is added to the dictionary of received polls
                 [action.pollId]: action.poll
             },
             nbUnreadPolls: state.nbUnreadPolls + 1

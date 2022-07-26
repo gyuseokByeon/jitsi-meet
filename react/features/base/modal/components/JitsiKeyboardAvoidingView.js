@@ -1,10 +1,12 @@
 // @flow
 
-import { useHeaderHeight } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
+import { useHeaderHeight } from '@react-navigation/elements';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+    Keyboard,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,9 +25,19 @@ type Props = {
     contentContainerStyle?: StyleType,
 
     /**
+     * Is a text input rendered at the bottom of the screen?
+     */
+    hasBottomTextInput: boolean,
+
+    /**
      * Is the screen rendering a tab navigator?
      */
     hasTabNavigator: boolean,
+
+    /**
+     * Is the keyboard already dismissible?
+     */
+    keyboardAlreadyDismissible?: boolean,
 
     /**
      * Additional style to be appended to the KeyboardAvoidingView.
@@ -38,6 +50,8 @@ const JitsiKeyboardAvoidingView = (
             children,
             contentContainerStyle,
             hasTabNavigator,
+            hasBottomTextInput,
+            keyboardAlreadyDismissible,
             style
         }: Props) => {
     const headerHeight = useHeaderHeight();
@@ -48,14 +62,20 @@ const JitsiKeyboardAvoidingView = (
         // This useEffect is needed because insets are undefined at first for some reason
         // https://github.com/th3rdwave/react-native-safe-area-context/issues/54
         setBottomPadding(insets.bottom);
-
     }, [ insets.bottom ]);
+
 
     const tabNavigatorPadding
         = hasTabNavigator ? headerHeight : 0;
     const noNotchDevicePadding = bottomPadding || 10;
-    const iosVerticalOffset = headerHeight + noNotchDevicePadding + tabNavigatorPadding;
-    const androidVerticalOffset = headerHeight;
+    const iosVerticalOffset
+        = headerHeight + noNotchDevicePadding + tabNavigatorPadding;
+    const androidVerticalOffset = hasBottomTextInput
+        ? headerHeight + StatusBar.currentHeight : headerHeight;
+
+    // Tells the view what to do with taps
+    const shouldSetResponse = useCallback(() => !keyboardAlreadyDismissible);
+    const onRelease = useCallback(() => Keyboard.dismiss());
 
     return (
         <KeyboardAvoidingView
@@ -67,6 +87,8 @@ const JitsiKeyboardAvoidingView = (
                     ? iosVerticalOffset
                     : androidVerticalOffset
             }
+            onResponderRelease = { onRelease }
+            onStartShouldSetResponder = { shouldSetResponse }
             style = { style }>
             { children }
         </KeyboardAvoidingView>

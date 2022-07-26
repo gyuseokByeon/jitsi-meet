@@ -11,15 +11,30 @@ import {
     createConference,
     getCurrentConference
 } from '../base/conference';
-import { setAudioMuted, setVideoMuted } from '../base/media';
+import {
+    MEDIA_TYPE,
+    setAudioMuted,
+    setVideoMuted
+} from '../base/media';
 import { getRemoteParticipants } from '../base/participants';
-import { clearNotifications } from '../notifications';
+import {
+    getLocalTracks,
+    isLocalCameraTrackMuted,
+    isLocalTrackMuted
+} from '../base/tracks';
+import { createDesiredLocalTracks } from '../base/tracks/actions';
+import {
+    NOTIFICATION_TIMEOUT_TYPE,
+    clearNotifications,
+    showNotification
+} from '../notifications';
 
 import { _RESET_BREAKOUT_ROOMS, _UPDATE_ROOM_COUNTER } from './actionTypes';
 import { FEATURE_KEY } from './constants';
 import {
     getBreakoutRooms,
-    getMainRoom
+    getMainRoom,
+    getRoomByJid
 } from './functions';
 import logger from './logger';
 
@@ -83,6 +98,17 @@ export function closeBreakoutRoom(roomId: string) {
 export function removeBreakoutRoom(breakoutRoomJid: string) {
     return (dispatch: Dispatch<any>, getState: Function) => {
         sendAnalytics(createBreakoutRoomsEvent('remove'));
+        const room = getRoomByJid(getState, breakoutRoomJid);
+
+        if (!room) {
+            logger.error('The room to remove was not found.');
+
+            return;
+        }
+
+        if (Object.keys(room.participants).length > 0) {
+            dispatch(closeBreakoutRoom(room.id));
+        }
 
         // $FlowExpectedError
         getCurrentConference(getState)?.getBreakoutRooms()
@@ -155,8 +181,9 @@ export function sendParticipantToRoom(participantId: string, roomId: string) {
  * @returns {Function}
  */
 export function moveToRoom(roomId?: string) {
-    return (dispatch: Dispatch<any>, getState: Function) => {
-        let _roomId = roomId || getMainRoom(getState)?.id;
+    return async (dispatch: Dispatch<any>, getState: Function) => {
+        const mainRoomId = getMainRoom(getState)?.id;
+        let _roomId = roomId || mainRoomId;
 
         // Check if we got a full JID.
         // $FlowExpectedError
@@ -175,6 +202,18 @@ export function moveToRoom(roomId?: string) {
             _roomId.domain = domainParts.join('@');
         }
 
+        // $FlowExpectedError
+        const roomIdStr = _roomId?.toString();
+        const goToMainRoom = roomIdStr === mainRoomId;
+        const rooms = getBreakoutRooms(getState);
+        const targetRoom = rooms[roomIdStr];
+
+        if (!targetRoom) {
+            logger.warn(`Unknown room: ${targetRoom}`);
+
+            return;
+        }
+
         dispatch({
             type: _RESET_BREAKOUT_ROOMS
         });
@@ -185,23 +224,57 @@ export function moveToRoom(roomId?: string) {
 
             dispatch(conferenceWillLeave(conference));
 
-            conference.leave()
-                .catch(error => {
-                    logger.warn('JitsiConference.leave() rejected with:', error);
+            try {
+                await conference.leave();
+            } catch (error) {
+                logger.warn('JitsiConference.leave() rejected with:', error);
 
-                    dispatch(conferenceLeft(conference));
-                })
-                .then(() => {
-                    dispatch(clearNotifications());
+                dispatch(conferenceLeft(conference));
+            }
 
-                    // dispatch(setRoom(_roomId));
-                    dispatch(createConference(_roomId));
-                    dispatch(setAudioMuted(audio.muted));
-                    dispatch(setVideoMuted(video.muted));
-                });
+            dispatch(clearNotifications());
+
+            // dispatch(setRoom(_roomId));
+            dispatch(createConference(_roomId));
+            dispatch(setAudioMuted(audio.muted));
+            dispatch(setVideoMuted(video.muted));
+            dispatch(createDesiredLocalTracks());
         } else {
-            APP.conference.leaveRoom(false /* doDisconnect */)
-                .finally(() => APP.conference.joinRoom(_roomId));
+            const localTracks = getLocalTracks(getState()['features/base/tracks']);
+            const isAudioMuted = isLocalTrackMuted(localTracks, MEDIA_TYPE.AUDIO);
+            const isVideoMuted = isLocalCameraTrackMuted(localTracks);
+
+            try {
+                // all places we fire notifyConferenceLeft we pass the room name from APP.conference
+                await APP.conference.leaveRoom(false /* doDisconnect */).then(
+                    () => APP.API.notifyConferenceLeft(APP.conference.roomName));
+            } catch (error) {
+                logger.warn('APP.conference.leaveRoom() rejected with:', error);
+
+                // TODO: revisit why we don't dispatch CONFERENCE_LEFT here.
+            }
+
+            APP.conference.joinRoom(_roomId, {
+                startWithAudioMuted: isAudioMuted,
+                startWithVideoMuted: isVideoMuted
+            });
+        }
+
+        if (goToMainRoom) {
+            dispatch(showNotification({
+                titleKey: 'breakoutRooms.notifications.joinedTitle',
+                descriptionKey: 'breakoutRooms.notifications.joinedMainRoom',
+                concatText: true,
+                maxLines: 2
+            }, NOTIFICATION_TIMEOUT_TYPE.MEDIUM));
+        } else {
+            dispatch(showNotification({
+                titleKey: 'breakoutRooms.notifications.joinedTitle',
+                descriptionKey: 'breakoutRooms.notifications.joined',
+                descriptionArguments: { name: targetRoom.name },
+                concatText: true,
+                maxLines: 2
+            }, NOTIFICATION_TIMEOUT_TYPE.MEDIUM));
         }
     };
 }

@@ -1,5 +1,6 @@
 // @flow
 
+import { readyToClose } from '../../../features/mobile/external-api/actions';
 import {
     ACTION_PINNED,
     ACTION_UNPINNED,
@@ -8,8 +9,12 @@ import {
     sendAnalytics
 } from '../../analytics';
 import { reloadNow } from '../../app/actions';
+import { removeLobbyChatParticipant } from '../../chat/actions.any';
 import { openDisplayNamePrompt } from '../../display-name';
-import { NOTIFICATION_TIMEOUT_TYPE, showErrorNotification } from '../../notifications';
+import {
+    NOTIFICATION_TIMEOUT_TYPE,
+    showErrorNotification
+} from '../../notifications';
 import { CONNECTION_ESTABLISHED, CONNECTION_FAILED, connectionDisconnected } from '../connection';
 import { validateJwt } from '../jwt';
 import { JitsiConferenceErrors } from '../lib-jitsi-meet';
@@ -38,8 +43,10 @@ import {
     conferenceFailed,
     conferenceWillLeave,
     createConference,
+    setLocalSubject,
     setSubject
 } from './actions';
+import { TRIGGER_READY_TO_CLOSE_REASONS } from './constants';
 import {
     _addLocalTracksToConference,
     _removeLocalTracksFromConference,
@@ -130,6 +137,14 @@ function _conferenceFailed({ dispatch, getState }, next, action) {
             titleKey: 'dialog.sessTerminated'
         }, NOTIFICATION_TIMEOUT_TYPE.LONG));
 
+        if (TRIGGER_READY_TO_CLOSE_REASONS.includes(reason)) {
+            if (typeof APP === undefined) {
+                dispatch(readyToClose());
+            } else {
+                APP.API.notifyReadyToClose();
+            }
+        }
+
         break;
     }
     case JitsiConferenceErrors.CONFERENCE_RESTARTED: {
@@ -199,7 +214,12 @@ function _conferenceJoined({ dispatch, getState }, next, action) {
     const result = next(action);
     const { conference } = action;
     const { pendingSubjectChange } = getState()['features/base/conference'];
-    const { requireDisplayName, disableBeforeUnloadHandlers = false } = getState()['features/base/config'];
+    const {
+        disableBeforeUnloadHandlers = false,
+        requireDisplayName
+    } = getState()['features/base/config'];
+
+    dispatch(removeLobbyChatParticipant(true));
 
     pendingSubjectChange && dispatch(setSubject(pendingSubjectChange));
 
@@ -474,11 +494,12 @@ function _sendTones({ getState }, next, action) {
  */
 function _setRoom({ dispatch, getState }, next, action) {
     const state = getState();
-    const { subject } = state['features/base/config'];
+    const { localSubject, subject } = state['features/base/config'];
     const { room } = action;
 
     if (room) {
         // Set the stored subject.
+        dispatch(setLocalSubject(localSubject));
         dispatch(setSubject(subject));
     }
 

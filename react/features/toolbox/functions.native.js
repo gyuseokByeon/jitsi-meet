@@ -54,6 +54,19 @@ export function getMovableButtons(width: number): Set<string> {
 }
 
 /**
+ * Indicates if the desktop share button is disabled or not.
+ *
+ * @param {Object} state - The state from the Redux store.
+ * @returns {boolean}
+ */
+export function isDesktopShareButtonDisabled(state: Object) {
+    const { muted, unmuteBlocked } = state['features/base/media'].video;
+    const videoOrShareInProgress = !muted || isLocalVideoTrackDesktop(state);
+
+    return unmuteBlocked && !videoOrShareInProgress;
+}
+
+/**
  * Returns true if the toolbox is visible.
  *
  * @param {Object | Function} stateful - A function or object that can be
@@ -80,7 +93,9 @@ export function isToolboxVisible(stateful: Object | Function) {
  * @returns {boolean}
  */
 export function isVideoMuteButtonDisabled(state: Object) {
-    const { video } = state['features/base/media'];
+    const { muted, unmuteBlocked } = state['features/base/media'].video;
 
-    return !hasAvailableDevices(state, 'videoInput') || video?.blocked || isLocalVideoTrackDesktop(state);
+    return !hasAvailableDevices(state, 'videoInput')
+        || (unmuteBlocked && Boolean(muted))
+        || isLocalVideoTrackDesktop(state);
 }
